@@ -2,7 +2,8 @@
 build/
 install/
 log/
-
+cv_watchdog/
+src/my_new_package/
 # Python compilation files
 __pycache__/
 *.pyc

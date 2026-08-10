@@ -24,6 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'camera_driver_node = vo_pipeline.camera_driver_node:main',
+            'vo_estimator_node = vo_pipeline.vo_estimator_node:main',
         ],
     },
 )
