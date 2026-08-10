@@ -1,0 +1,4 @@
+bool hard_reset
+---
+bool success
+string message
