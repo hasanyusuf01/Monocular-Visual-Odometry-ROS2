@@ -17,6 +17,7 @@ class IPCamPublisher(Node):
         self.cam_D_matrics_path = './src/vo_pipeline/matrics/D_M.npy'
 
 
+
         self.cam_K_matrics = np.load(self.cam_K_matrics_path)
         self.cam_D_matrics = np.load(self.cam_D_matrics_path)
 
@@ -29,6 +30,14 @@ class IPCamPublisher(Node):
         # if IP:
         self.cap = cv2.VideoCapture(self.IP)
         # self.cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+
+        # _, frame = self.cap.read()
+        # self.prev_frame = frame
+        # self.info_cam = self.get_cam_info(frame.shape[1],frame.shape[0],self.get_clock().now().to_msg())
+        # self.publisher_camInfo.publish(self.info_cam)
+
+
+
         self.create_timer(0.05,callback = self.timer_callback)
         
         self.get_logger().info("IP Camera Publisher Node has been started.")

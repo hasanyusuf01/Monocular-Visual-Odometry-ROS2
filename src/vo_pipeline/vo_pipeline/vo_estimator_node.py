@@ -8,21 +8,8 @@ from nav_msgs.msg import Odometry
 from cv_bridge import CvBridge     # The translator between OpenCV and ROS
 import cv2                         # OpenCV itself
 import message_filters
-from helper import detectFeatures, opticalFlow
+from vo_pipeline.helper import vo_tracker
 
-
-class VIO():
-    def __init__(self, num_features):
-        self.num_features = num_features
-            
-    def vo_tracker(self,frame,cam_info):
-        K = cam_info.k
-        D = cam_info.d 
-        P= cam_info.P
-        detector = detectFeatures(self.NUM_features, self.K, self.D)
-
-
-        pass
 
 
 
@@ -31,9 +18,14 @@ class IpCamRead(Node):
     def __init__(self):
         # Name this node 'ip_cam_publisher' in the ROS2 graph
         super().__init__('ip_cam_listener')
+        self.cam_info_flag = False
 
         # constants
         self.NUM_features = 100
+        self.f0 = None
+
+        self.f1 = None
+        self.P_global = None
 
 
         self.bridge = CvBridge()
@@ -48,8 +40,7 @@ class IpCamRead(Node):
         self.odometry_publisher = self.create_publisher(Odometry,'/vo/raw_odom',10)
 
 
-    # 3. THE CALLBACK: This runs every time the timer ticks
-    def get_odom(self):
+    def get_dummy_odom(self):
         msg = Odometry()
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.child_frame_id = 'odom_msg'
@@ -74,20 +65,73 @@ class IpCamRead(Node):
         msg.twist.covariance = [0.0] * 36 # Ignored for now
         
         return msg
+    def get_odom(self,info_cam, f0, f1, del_T, P_global):
+        msg = Odometry()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.child_frame_id = 'odom_msg'
+        msg.header.frame_id = 'camera_optical_frame'
+        # f0 = self.f0
+        # f1 = self.f1
+        x, y , z ,quat_xyzw , angular_velocities, linear_velocities, P_global = vo_tracker(self.NUM_features,info_cam.k,info_cam.d, f0, f1,del_T, P_global)
+        msg.pose.pose.position.x = x
+        msg.pose.pose.position.y = y
+        msg.pose.pose.position.z = z
+        msg.pose.pose.orientation.x = quat_xyzw[0]
+        msg.pose.pose.orientation.y = quat_xyzw[1]
+        msg.pose.pose.orientation.z = quat_xyzw[2]
+        msg.pose.covariance = [0.0] * 36  # Ignored for now
 
+        # --- TWIST (How fast the camera is moving) ---
+        msg.twist.twist.linear.x = linear_velocities[0]  # Moving forward at 0.5 m/s
+        msg.twist.twist.linear.y = linear_velocities[1]
+        msg.twist.twist.linear.z = linear_velocities[2]
+        
+        msg.twist.twist.angular.x = angular_velocities[0]
+        msg.twist.twist.angular.y = angular_velocities[1]
+        msg.twist.twist.angular.z = angular_velocities[2] # Rotating slightly
+        
+        msg.twist.covariance = [0.0] * 36 # Ignored for now
+        
+        return msg, P_global
         
     def listener_callback(self,img_msg, info_msg):
         frame = self.bridge.imgmsg_to_cv2(img_msg)
-        self.get_logger().info(f'info_msg{info_msg.k}')
 
-        h,w,c = frame.shape
-        self.get_logger().info(f'frame recived \n frame shape is {h} - {w} - {c}')
-        odom_msg = self.get_odom()
-        self.odometry_publisher.publish(odom_msg)
-        frame = cv2.resize(frame,(640,480))
-        cv2.imshow("camera", frame)
-        cv2.waitKey(1)
-  
+        if self.cam_info_flag == False:
+            self.cam_info = info_msg
+            self.get_logger().info(f'info_msg{info_msg.k}')
+            self.cam_info_flag = True
+        if self.f0 == None and self.f1 == None:
+            # first time so the current frame is set to f0 
+            self.f0 = img_msg
+            f0 = self.bridge.imgmsg_to_cv2(self.f0)
+            odom_msg = self.get_dummy_odom()
+            self.odometry_publisher.publish(odom_msg)
+        else:
+            # from second timeonwards f0 = prev set frame and f1 = current one
+            self.f1 = img_msg
+            f0 = self.bridge.imgmsg_to_cv2(self.f0)
+            f1 = self.bridge.imgmsg_to_cv2(self.f1)
+            # Convert f1 time to total seconds (float)
+            t1 = self.f1.header.stamp.sec + (self.f1.header.stamp.nanosec * 1e-9)
+            # Convert f0 time to total seconds (float)
+            t0 = self.f0.header.stamp.sec + (self.f0.header.stamp.nanosec * 1e-9)
+            # Calculate the time difference in seconds
+            del_T = t1 - t0
+            self.get_logger().info(f"Time difference (del_T): {del_T} seconds")
+            # h,w,c = frame.shape
+            odom_msg, P_global = self.get_odom(info_msg,f0,f1,del_T,self.P_global)
+            self.P_global = P_global
+            self.f0 = self.f1
+            self.get_logger().info(f'frame odom msg {odom_msg}')
+
+            self.odometry_publisher.publish(odom_msg)
+
+
+            frame = cv2.resize(frame,(640,480))
+            cv2.imshow("camera", frame)
+            cv2.waitKey(1)
+    
 
     # (Optional but good practice) Cleanup when the node shuts down
     def destroy_node(self):
