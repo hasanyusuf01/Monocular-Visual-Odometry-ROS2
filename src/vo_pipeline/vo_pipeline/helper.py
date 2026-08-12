@@ -67,7 +67,7 @@ class opticalFlow():
           
 
 # if __name__ == '__main__':
-def vo_tracker(num_features,k,d,f0,f1,del_T,P_global = None):
+def vo_tracker(num_features,k,d,f0,f1,del_T,P_global):
     detector = detectFeatures(num_features,k,d)
     optFlow = opticalFlow()
     lk_params = optFlow.lk_params
@@ -75,8 +75,11 @@ def vo_tracker(num_features,k,d,f0,f1,del_T,P_global = None):
     
     p0_frame = f0
     p0_undistorted_frame , p0_undistorted_frame_gray,p0_features = detector.process_frame(p0_frame)
-    if P_global == None:
-        P_global = np.eye(4)
+    if p0_features is None or len(p0_features) < 8:
+        print("Not enough features detected in the first frame.")
+        return None, None, None, None, None, None, P_global
+    # if P_global == None:
+    #     P_global = np.eye(4)
 
 
     p1_frame = f1
@@ -87,6 +90,9 @@ def vo_tracker(num_features,k,d,f0,f1,del_T,P_global = None):
                                        p1_undistorted_frame_gray,
                                        p0_features, None,
                                        **lk_params)
+    if p1_features is None or len(p1_features) < 8:
+        print("Not enough features tracked in the second frame.")
+        return None, None, None, None, None, None, P_global
     # backward track pn tp pn-1 
     p0_features_back , st , err =  cv2.calcOpticalFlowPyrLK(p1_undistorted_frame_gray,
                                                                  p0_undistorted_frame_gray,
@@ -99,17 +105,23 @@ def vo_tracker(num_features,k,d,f0,f1,del_T,P_global = None):
     # print(np.sum(valid==1))
     p0_features = p0_features[valid==1]
     p1_features = p1_features[valid==1]
+    if len(p0_features) < 8 or len(p1_features) < 8:
+        print("Not enough valid features after filtering.")
+        return None, None, None, None, None, None, P_global
     E, valid2 = cv2.findEssentialMat(p0_features, p1_features, k, method=cv2.RANSAC, prob=0.999, threshold=1.0)
     p0_features = p0_features[valid2==1]
     p1_features = p1_features[valid2==1]
-    print(np.sum(valid2==1))
-    _, R, t, valid3 = cv2.recoverPose(E, p0_features, p1_features, d)
+    # print(np.sum(valid2==1))
+    if len(p0_features) < 8 or len(p1_features) < 8:
+        print("Not enough valid features after essential matrix filtering.")
+        return None, None, None, None, None, None, P_global
+    _, R, t, valid3 = cv2.recoverPose(E, p0_features, p1_features, k)
     # p0_features = p0_features[valid3]
     # p1_features = p1_features[valid3]
     P_step = np.eye(4)
     P_step[:3, :3] = R
     P_step[:3, 3] = t.squeeze()
-    print(P_step)
+    # print(P_step)
     P_global = P_global @ P_step
     # print(P_global)
     x = P_global[0, 3]  # Left/Right movement

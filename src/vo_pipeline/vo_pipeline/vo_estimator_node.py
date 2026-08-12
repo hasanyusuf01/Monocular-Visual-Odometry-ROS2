@@ -9,7 +9,7 @@ from cv_bridge import CvBridge     # The translator between OpenCV and ROS
 import cv2                         # OpenCV itself
 import message_filters
 from vo_pipeline.helper import vo_tracker
-
+import numpy as np
 
 
 
@@ -25,7 +25,7 @@ class IpCamRead(Node):
         self.f0 = None
 
         self.f1 = None
-        self.P_global = None
+        self.P_global = np.eye(4)
 
 
         self.bridge = CvBridge()
@@ -72,7 +72,16 @@ class IpCamRead(Node):
         msg.header.frame_id = 'camera_optical_frame'
         # f0 = self.f0
         # f1 = self.f1
-        x, y , z ,quat_xyzw , angular_velocities, linear_velocities, P_global = vo_tracker(self.NUM_features,info_cam.k,info_cam.d, f0, f1,del_T, P_global)
+        K_matrix = np.array(info_cam.k, dtype=float).reshape(3, 3)
+        D_matrix = np.array(info_cam.d, dtype=float)
+        x, y , z ,quat_xyzw , angular_velocities, linear_velocities, P_global = vo_tracker(self.NUM_features,K_matrix,D_matrix, f0, f1,del_T, P_global)
+        self.get_logger().info(f"Position: x={x}, y={y}, z={z}")
+        if x is None or y is None or z is None:
+            self.get_logger().warn("Odometry calculation failed due to insufficient features.")
+            return self.get_dummy_odom(), P_global
+        x = float(x)
+        y = float(y)
+        z = float(z)
         msg.pose.pose.position.x = x
         msg.pose.pose.position.y = y
         msg.pose.pose.position.z = z
@@ -81,10 +90,17 @@ class IpCamRead(Node):
         msg.pose.pose.orientation.z = quat_xyzw[2]
         msg.pose.covariance = [0.0] * 36  # Ignored for now
 
+
+
         # --- TWIST (How fast the camera is moving) ---
-        msg.twist.twist.linear.x = linear_velocities[0]  # Moving forward at 0.5 m/s
-        msg.twist.twist.linear.y = linear_velocities[1]
-        msg.twist.twist.linear.z = linear_velocities[2]
+        self.get_logger().info(f"Linear Velocities: {linear_velocities[0][0]}")
+        self.get_logger().info(f"Angular Velocities: {angular_velocities}")
+
+        linear_velocities = np.array(linear_velocities, dtype=float)
+        angular_velocities = np.array(angular_velocities, dtype=float)
+        msg.twist.twist.linear.x = linear_velocities[0][0]  # Moving forward at 0.5 m/s
+        msg.twist.twist.linear.y = linear_velocities[1][0]
+        msg.twist.twist.linear.z = linear_velocities[2][0]
         
         msg.twist.twist.angular.x = angular_velocities[0]
         msg.twist.twist.angular.y = angular_velocities[1]
@@ -99,7 +115,7 @@ class IpCamRead(Node):
 
         if self.cam_info_flag == False:
             self.cam_info = info_msg
-            self.get_logger().info(f'info_msg{info_msg.k}')
+            # self.get_logger().info(f'info_msg{info_msg.k}')
             self.cam_info_flag = True
         if self.f0 == None and self.f1 == None:
             # first time so the current frame is set to f0 
@@ -118,12 +134,12 @@ class IpCamRead(Node):
             t0 = self.f0.header.stamp.sec + (self.f0.header.stamp.nanosec * 1e-9)
             # Calculate the time difference in seconds
             del_T = t1 - t0
-            self.get_logger().info(f"Time difference (del_T): {del_T} seconds")
+            # self.get_logger().info(f"Time difference (del_T): {del_T} seconds")
             # h,w,c = frame.shape
             odom_msg, P_global = self.get_odom(info_msg,f0,f1,del_T,self.P_global)
             self.P_global = P_global
             self.f0 = self.f1
-            self.get_logger().info(f'frame odom msg {odom_msg}')
+            # self.get_logger().info(f'frame odom msg {odom_msg}')
 
             self.odometry_publisher.publish(odom_msg)
 
