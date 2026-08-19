@@ -43,8 +43,8 @@ class IpCamRead(Node):
     def get_dummy_odom(self):
         msg = Odometry()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.child_frame_id = 'odom_msg'
-        msg.header.frame_id = 'camera_optical_frame'
+        msg.child_frame_id = 'camera_optical_frame'
+        msg.header.frame_id = 'odom_msg'
         msg.pose.pose.position.x = 0.0
         msg.pose.pose.position.y = 0.0
         msg.pose.pose.position.z = 0.0
@@ -68,8 +68,8 @@ class IpCamRead(Node):
     def get_odom(self,info_cam, f0, f1, del_T, P_global):
         msg = Odometry()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.child_frame_id = 'odom_msg'
-        msg.header.frame_id = 'camera_optical_frame'
+        msg.child_frame_id = 'camera_optical_frame'
+        msg.header.frame_id = 'odom_msg'
         # f0 = self.f0
         # f1 = self.f1
         K_matrix = np.array(info_cam.k, dtype=float).reshape(3, 3)
