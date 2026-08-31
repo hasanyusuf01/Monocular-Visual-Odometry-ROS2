@@ -1,22 +1,12 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>custom_vio</name>
+  <name>custom_vio_interfaces</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
   <maintainer email="yusufhasan1209@gmail.com">yusuf</maintainer>
   <license>TODO: License declaration</license>
-  <depend>rclpy</depend>
-  <depend>rclcpp</depend>
-  <depend>nav_msgs</depend>
-  <depend>image_transport</depend>
-  <depend>tf2</depend>
-  <depend>tf2_ros</depend>
-  <depend>Eigen3</depend>
-  <depend>OpenCV</depend>
-  <depend>sensor_msgs</depend>
-  <depend>geometry_msgs</depend>
-  <depend>cv_bridge</depend>
+
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <test_depend>ament_lint_auto</test_depend>
