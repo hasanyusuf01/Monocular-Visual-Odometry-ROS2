@@ -28,8 +28,8 @@ class eskf_backend_node : public rclcpp::Node
       50ms, std::bind(&eskf_backend_node::odom_callback, this));
 
 
-    //   subscription_imu = this->create_subscription<sensor_msgs::msg::Imu>(
-    //   "/mobile_sensor/imu", 10, std::bind(&eskf_backend_node::odom_callback, this, _1));
+      subscription_imu = this->create_subscription<sensor_msgs::msg::Imu>(
+      "/mobile_sensor/imu", 10, std::bind(&eskf_backend_node::imu_callback, this, _1));
 
 
       subscription_pose = this->create_subscription<geometry_msgs::msg::PoseStamped>(
@@ -51,7 +51,7 @@ class eskf_backend_node : public rclcpp::Node
       message.pose.pose.orientation.x = 0.0;
       message.pose.pose.orientation.y = 0.0;
       message.pose.pose.orientation.z = 0.0;
-      message.pose.pose.orientation.z = 1.0;
+      message.pose.pose.orientation.w = 1.0;
 
     //   message.pose.covariance = std::array<int> vec(36, 0);
 
@@ -84,11 +84,56 @@ class eskf_backend_node : public rclcpp::Node
         
         
         RCLCPP_INFO(this->get_logger(), " message pos x = %f , message pos y = %f, message pos z = %f ", msg_local.pose.position.x,msg_local.pose.position.y, msg_local.pose.position.z);
+
+        
+        // RCLCPP_INFO(this->get_logger(), " message pos x = %f , message pos y = %f, message pos z = %f ", msg_local.pose.position.x,msg_local.pose.position.y, msg_local.pose.position.z);
     }
+
+
+    void imu_callback(const sensor_msgs::msg::Imu::SharedPtr msg) const
+    
+    {
+        auto message = sensor_msgs::msg::Imu();
+
+        message.header.stamp =    msg->header.stamp;
+ 
+        message.orientation.x = msg->orientation.x;
+        message.orientation.y = msg->orientation.y;
+        message.orientation.z = msg->orientation.z;
+        message.orientation.w = msg->orientation.w;
+
+        message.orientation_covariance = msg->orientation_covariance;
+        message.linear_acceleration_covariance  = msg->linear_acceleration_covariance ;
+
+        message.linear_acceleration.x = msg->linear_acceleration.x ;
+        message.linear_acceleration.y = msg->linear_acceleration.y ;
+        message.linear_acceleration.z = msg->linear_acceleration.z;
+
+        message.angular_velocity.x =  msg->angular_velocity.x; 
+        message.angular_velocity.y =  msg->angular_velocity.y; 
+        message.angular_velocity.z = msg->angular_velocity.z;
+
+        //   message.twist.covariance = std::array<int> vec(36, 0);
+    //     message.pose.covariance.fill(0.0);
+    // message.twist.covariance.fill(0.0);
+
+
+
+        RCLCPP_INFO(this->get_logger(), " recived some imu data ");
+
+    }
+
     rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr subscription_pose;
+    rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr subscription_imu;
+
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr publisher_odom;
     size_t count_;
+
+
+
+
+
 
 };
 
