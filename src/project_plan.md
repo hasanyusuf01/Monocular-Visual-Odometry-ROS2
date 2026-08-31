@@ -79,7 +79,7 @@ custom_vio_ws/
 Build a node to process camera frames without frame drops.
 
 * **Node Name:** `vo_frontend_node`
-* **Subscribed Topic:** `/mobile_sensor/image_raw` (`sensor_msgs/msg/Image`)
+* **Subscribed Topic:** `/camera/image_raw/compressed` (`sensor_msgs/msg/CompressedImage`)
 * **Published Topic:** `/vo/pose` (`geometry_msgs/msg/PoseStamped`)
 * **Execution Strategy:** Use `cv_bridge::toCvCopy` to convert incoming ROS image payloads into `cv::Mat` (monochrome `bgr8` or `mono8`).
 * **TODO:** Create `vo_frontend_node.cpp` inheriting from `rclcpp::Node`.

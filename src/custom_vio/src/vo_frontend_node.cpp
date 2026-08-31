@@ -19,12 +19,11 @@ class frontend_node : public rclcpp::Node
 {
   public:
     frontend_node()
-    : Node("frontend_node")
-    // , count_(0)
+    : Node("frontend_node"), count_(0)
     {
-    //   publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("vo/pose", 10);
-    //   timer_ = this->create_wall_timer(
-    //   500ms, std::bind(&frontend_node::timer_callback, this));
+      publisher_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("vo/pose", 10);
+      timer_ = this->create_wall_timer(
+      50ms, std::bind(&frontend_node::timer_callback, this));
 
 
       subscription_ = this->create_subscription<sensor_msgs::msg::CompressedImage>(
@@ -32,19 +31,19 @@ class frontend_node : public rclcpp::Node
     }
 
   private:
-    // void timer_callback()
-    // {
-    //   auto message = geometry_msgs::msg::PoseStamped();
-    //   message.header.stamp = this->get_clock()->now();
-    //   message.pose.position.x = 1.0;
-    //   message.pose.position.y = 2.0;
-    //   message.pose.position.z = 3.0;
-    //   RCLCPP_INFO(this->get_logger(), "Publishing pose: '%s'", message.data.c_str());
-    //   publisher_->publish(message);
-    // }
-    // rclcpp::TimerBase::SharedPtr timer_;
-    // rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr publisher_;
-    // size_t count_;
+    void timer_callback()
+    {
+      auto message = geometry_msgs::msg::PoseStamped();
+      message.header.stamp = this->get_clock()->now();
+      message.pose.position.x = 1.0;
+      message.pose.position.y = 2.0;
+      message.pose.position.z = 3.0;
+      RCLCPP_INFO(this->get_logger(), "Publishing pose: '%f'", message.pose.position.x);
+      publisher_->publish(message);
+    }
+    rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr publisher_;
+    size_t count_;
 
 
     void topic_callback(const sensor_msgs::msg::CompressedImage::SharedPtr msg) const

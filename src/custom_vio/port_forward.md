@@ -6,6 +6,77 @@ colcon build --packages-select pkgname --symlink-install
 
 ros2 run pkg_name node_name
 
+
+
+
+### list all active topics 
+
+ ros2 topic list
+/camera/camera_info
+/camera/image_raw/compressed
+/mobile_sensor/gps
+/mobile_sensor/imu
+/mobile_sensor/pose
+/mobile_sensor/speech
+/mobile_sensor/tts
+/mobile_sensor/tts_wav
+/mobile_sensor/wav_bytes
+/parameter_events
+/rosout
+### list the active topic message type 
+
+yusuf@LAPTOP-LUNJNS0R:~/workSp$ ros2 topic type /mobile_se
+nsor/imu
+sensor_msgs/msg/Imu
+
+### list the interface format 
+
+yusuf@LAPTOP-LUNJNS0R:~/workSp$ ```  ros2 interface show sensor_msgs/msg/Imu ```
+
+```
+
+# This is a message to hold data from an IMU (Inertial Measurement Unit)
+#
+# Accelerations should be in m/s^2 (not in g's), and rotational velocity should be in rad/sec
+#
+# If the covariance of the measurement is known, it should be filled in (if all you know is the
+# variance of each measurement, e.g. from the datasheet, just put those along the diagonal)
+# A covariance matrix of all zeros will be interpreted as "covariance unknown", and to use the
+# data a covariance will have to be assumed or gotten from some other source
+#
+# If you have no estimate for one of the data elements (e.g. your IMU doesn't produce an
+# orientation estimate), please set element 0 of the associated covariance matrix to -1
+# If you are interpreting this message, please check for a value of -1 in the first element of each
+# covariance matrix, and disregard the associated estimate.
+
+std_msgs/Header header
+        builtin_interfaces/Time stamp
+                int32 sec
+                uint32 nanosec
+        string frame_id
+
+geometry_msgs/Quaternion orientation
+        float64 x 0
+        float64 y 0
+        float64 z 0
+        float64 w 1
+float64[9] orientation_covariance # Row major about x, y, z axes
+
+geometry_msgs/Vector3 angular_velocity
+        float64 x
+        float64 y
+        float64 z
+float64[9] angular_velocity_covariance # Row major about x, y, z axes
+
+geometry_msgs/Vector3 linear_acceleration
+        float64 x
+        float64 y
+        float64 z
+float64[9] linear_acceleration_covariance # Row major x, y z
+
+```
+
+
 ## Step 1: Open Port 4000 in Windows Firewall
 
 You need to allow outside devices to talk to Windows on port 4000.
