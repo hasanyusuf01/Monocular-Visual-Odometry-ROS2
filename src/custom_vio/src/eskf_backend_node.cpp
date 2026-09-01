@@ -28,6 +28,16 @@ class eskf_backend_node : public rclcpp::Node
       50ms, std::bind(&eskf_backend_node::odom_callback, this));
 
 
+
+      imu_grp = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+      pose_grp = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+
+      auto imu_sub_options = rclcpp::SubscriptionOptions();
+      imu_sub_options.callback_group = imu_grp;
+
+      auto pose_sub_options = rclcpp::SubscriptionOptions();
+      pose_sub_options.callback_group = pose_grp;
+
       subscription_imu = this->create_subscription<sensor_msgs::msg::Imu>(
       "/mobile_sensor/imu", 10, std::bind(&eskf_backend_node::imu_callback, this, _1));
 
@@ -35,9 +45,35 @@ class eskf_backend_node : public rclcpp::Node
       subscription_pose = this->create_subscription<geometry_msgs::msg::PoseStamped>(
       "/vo/pose", 10, std::bind(&eskf_backend_node::pose_callback, this, _1));
 
+
+      /*    
+      
+      my_callback_group = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+
+      rclcpp::SubscriptionOptions options;
+      options.callback_group = my_callback_group;
+
+      my_subscription = create_subscription<Int32>("/topic", rclcpp::SensorDataQoS(),
+                                                  callback, options);
+      
+      */
+
     }
 
   private:
+
+    rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr subscription_pose;
+    rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr subscription_imu;
+    
+    rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr publisher_odom;
+    size_t count_;
+
+
+    // callback_group declaration
+    rclcpp::CallbackGroup::SharedPtr imu_grp;
+    rclcpp::CallbackGroup::SharedPtr pose_grp;
+
     void odom_callback()
     {
       auto message = nav_msgs::msg::Odometry();
@@ -123,12 +159,6 @@ class eskf_backend_node : public rclcpp::Node
 
     }
 
-    rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr subscription_pose;
-    rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr subscription_imu;
-
-    rclcpp::TimerBase::SharedPtr timer_;
-    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr publisher_odom;
-    size_t count_;
 
 
 
@@ -141,7 +171,12 @@ class eskf_backend_node : public rclcpp::Node
 int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<eskf_backend_node>());
-  rclcpp::shutdown();
+  auto node = std::make_shared<eskf_backend_node>();
+
+  rclcpp::executors::MultiThreadedExecutor executor;
+    // Add your node to the executor
+  executor.add_node(node);
+    // Spin the executor instead of the node
+  executor.spin();  rclcpp::shutdown();
   return 0;
 }
