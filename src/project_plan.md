@@ -113,7 +113,59 @@ Camera frames arrive at ~33 ms intervals, whereas IMU samples arrive at ~10 ms i
 * **TODO:** Write `imu_buffer.hpp` defining the thread-safe `std::deque` and mutex locking methods (`push()`, `pop_until()`, `clear()`).
 * **TODO:** Instantiate `ImuBuffer` inside `eskf_backend_node.cpp`.
 * **TODO:** Test the pipeline by printing queue sizes inside the visual pose callback to confirm the IMU buffer fills and empties correctly without data races.
+Here is the breakdown of how header files work, followed by the highly detailed, code-free steps to build your IMU buffer.
 
+**The Purpose of `.hpp` (Header) Files**
+In C++, `.hpp` files act as a "table of contents" or a "blueprint." They tell the compiler *what* exists (the names of classes, functions, and variables) without explaining *how* they work. The actual logic goes into the `.cpp` file. When you write `#include "my_file.hpp"`, you are sharing that blueprint with other parts of your program.
+
+**Will the other `.hpp` files be auto-generated?**
+**No.** In ROS 2, you must manually write all the `.hpp` and `.cpp` files for your custom nodes (like `vo_frontend_node` and `eskf_backend_node`). The *only* files ROS 2 auto-generates are the headers for custom Messages, Services, and Actions (like the `CalibrateImu.action` you will make later).
+
+---
+
+**Expanded TODO 1: Design the `imu_buffer.hpp` Blueprint**
+
+* **Location:** Create a new file named `imu_buffer.hpp` inside your `custom_vio/include/custom_vio/` folder.
+* **Include Guards:** At the very top, add a "pragma once" directive. This prevents the C++ compiler from accidentally reading this blueprint twice if multiple files include it.
+* **Library Includes:** Import the standard C++ tools you need: the `deque` (double-ended queue), `vector` (dynamic array), and `mutex` (the locking mechanism). You also need to include the ROS 2 IMU message header.
+* **Class Definition:** Define a new class named `ImuBuffer`.
+* **Private Section (The Data):**
+* Declare a `std::deque` designed to hold ROS 2 IMU messages. This is your actual buffer.
+* Declare a `std::mutex`. Think of a mutex like a "bathroom key." Because your IMU thread and your Camera thread are running simultaneously, they might both try to access the buffer at the exact same microsecond, causing a crash. The mutex ensures only one thread can touch the buffer at a time.
+
+
+* **Public Section (The Interface):**
+* Declare a `push` method that accepts a new IMU message.
+* Declare a `get_measurements_until` method that accepts a target timestamp and returns a list (vector) of IMU messages.
+* Declare a `clear` method to empty the queue.
+
+
+
+**Expanded TODO 2: Write the Buffer Logic**
+
+*(For a simple utility class like this, you can write the logic directly inside the `.hpp` file under the declarations).*
+
+* **Logic for `push`:** When this method is called, it must first "lock" the mutex. Once locked, it pushes the incoming IMU message to the back of the deque. Finally, it "unlocks" the mutex so other threads can use it.
+* **Logic for `get_measurements_until`:**
+1. Lock the mutex.
+2. Create an empty result list.
+3. Start a loop that looks at the "front" (oldest) message in the deque.
+4. If the deque is empty, or if the oldest message is newer than the target timestamp, break the loop.
+5. Otherwise, copy that oldest message into your result list, and pop (delete) it from the front of the deque.
+6. Unlock the mutex and return the result list.
+
+
+* **Logic for `clear`:** Lock the mutex, call the standard clear command on the deque, and unlock.
+
+**Expanded TODO 3: Instantiate and Use in the Backend Node**
+
+* **Include the File:** At the top of `eskf_backend_node.cpp`, include your new `imu_buffer.hpp` file.
+* **Declare the Object:** In the private section of your backend node class (where you declared your publishers and subscribers), declare a variable of type `ImuBuffer`.
+* **Update the IMU Callback:** Inside your high-speed `imu_callback`, take the incoming IMU message and pass it directly into the buffer's `push` method. You do not need to do any math here; just store the data.
+* **Update the Pose Callback:** Inside your slower `pose_callback`, extract the exact timestamp from the incoming visual pose message. Pass that timestamp into the buffer's `get_measurements_until` method.
+* **Verify the Output:** Store the result of that method in a local variable. Write a ROS 2 logging statement (`RCLCPP_INFO`) to print the size of that returned list.
+
+If everything is working perfectly, you should see the node printing that it extracted roughly 3 to 4 IMU messages every time a single visual pose arrives (since 100Hz is roughly 3.3 times faster than 30Hz).
 ---
 
 ## Phase 2: Visual Odometry Front-End & ROS 2 Services
