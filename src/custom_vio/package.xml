@@ -6,17 +6,20 @@
   <description>TODO: Package description</description>
   <maintainer email="yusufhasan1209@gmail.com">yusuf</maintainer>
   <license>TODO: License declaration</license>
-  <depend>rclpy</depend>
+  <!-- <depend>rclpy</depend> -->
   <depend>rclcpp</depend>
   <depend>nav_msgs</depend>
   <depend>image_transport</depend>
   <depend>tf2</depend>
   <depend>tf2_ros</depend>
-  <depend>Eigen3</depend>
-  <depend>OpenCV</depend>
+<depend>eigen</depend>
+  <depend>opencv2</depend>
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>cv_bridge</depend>
+  <!-- <depend>cnpy</depend> -->
+  <depend>yaml-cpp</depend>
+
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <test_depend>ament_lint_auto</test_depend>
