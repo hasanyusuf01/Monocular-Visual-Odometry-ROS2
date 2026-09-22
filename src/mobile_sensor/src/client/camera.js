@@ -84,7 +84,7 @@ class CameraManager {
             const reader = trackProcessor.readable.getReader();
 
             // Create canvas once for reuse
-            const canvas = new OffscreenCanvas(640, 480); // Fixed size for performance
+            const canvas = new OffscreenCanvas(1920, 1080); // Fixed size for performance
             const ctx = canvas.getContext('2d');
 
             let lastSentTime = 0;
