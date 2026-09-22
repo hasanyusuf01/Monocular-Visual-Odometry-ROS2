@@ -24,10 +24,13 @@ find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(yaml-cpp REQUIRED)
+# target_link_libraries(vio_node )
 
 # External System Libraries
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
+# find_package(cnpy REQUIRED)
 
 # ==============================================================================
 # 2. INCLUDE DIRECTORIES
@@ -37,6 +40,7 @@ include_directories(
   include
   ${OpenCV_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
+  ${YAML_CPP_INCLUDE_DIR}
 )
 
 # ==============================================================================
@@ -54,12 +58,15 @@ ament_target_dependencies(vo_frontend_node
   sensor_msgs
   geometry_msgs
   cv_bridge
+  std_msgs
+  ament_index_cpp
   image_transport
 )
 
 # Link non-ROS C++ libraries (OpenCV)
 target_link_libraries(vo_frontend_node
   ${OpenCV_LIBS}
+  yaml-cpp::yaml-cpp
 )
 
 
@@ -99,6 +106,7 @@ install(DIRECTORY
   include/
   launch
   config
+  metrics
   DESTINATION share/${PROJECT_NAME}
   FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h" PATTERN "*.py" PATTERN "*.yaml"
 )
